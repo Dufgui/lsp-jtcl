@@ -10,7 +10,9 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -73,5 +75,49 @@ public class TclLanguageServer implements LanguageServer {
     @Override
     public WorkspaceService getWorkspaceService() {
         return workspace;
+    }
+
+    /**
+     * Configured java interpreter + indices based on workspace settings and inferred source / class
+     * paths
+     */
+    Configured configured() {
+        Instant inferConfig = InferConfig.buildFilesModified(workspaceRoot);
+
+        if (cacheConfigured == null
+                || !Objects.equals(workspace.settings(), cacheSettings)
+                || !Objects.equals(workspaceRoot, cacheWorkspaceRoot)
+                || cacheInferConfig.isBefore(inferConfig)
+                || !cacheConfigured.index.sourcePath().equals(cacheSourcePath)) {
+            cacheConfigured = createCompiler(workspace.settings(), workspaceRoot);
+            cacheSettings = workspace.settings();
+            cacheWorkspaceRoot = workspaceRoot;
+            cacheInferConfig = inferConfig;
+            cacheSourcePath = cacheConfigured.index.sourcePath();
+
+            clearDiagnostics();
+        }
+
+        return cacheConfigured;
+    }
+
+    private Configured createCompiler(TclSettings settings, Path workspaceRoot) {
+
+        TclParserHolder compiler =
+                TclParserHolder.create();
+
+        return new Configured(compiler);
+    }
+
+    private void clearDiagnostics() {
+        InferConfig.allJavaFiles(workspaceRoot).forEach(this::clearFileDiagnostics);
+    }
+
+    private void clearFileDiagnostics(Path file) {
+        client.thenAccept(
+                c ->
+                        c.publishDiagnostics(
+                                new PublishDiagnosticsParams(
+                                        file.toUri().toString(), new ArrayList<>())));
     }
 }

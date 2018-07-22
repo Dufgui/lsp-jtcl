@@ -2,16 +2,15 @@ package com.mds.lsp.tcl;
 
 public class Configured {
 
-/*
-    final TclcHolder compiler;
-    final Tcldocs docs;
-    final SymbolIndex index;
-    final FindSymbols find;
+    final TclParserHolder interpreter;
+    //final Tcldocs docs;
+    //final SymbolIndex index;
+    //final FindSymbols find;
 
-    Configured(TclcHolder compiler, Tcldocs docs, SymbolIndex index, FindSymbols find) {
-        this.compiler = compiler;
-        this.docs = docs;
-        this.index = index;
-        this.find = find;
-    }*/
+    Configured(TclParserHolder interpreter/*, Tcldocs docs, SymbolIndex index, FindSymbols find*/) {
+        this.interpreter = interpreter;
+        //this.docs = docs;
+        //this.index = index;
+        //this.find = find;
+    }
 }
