@@ -2,6 +2,7 @@ package com.mds.lsp.tcl;
 
 import com.google.common.base.Joiner;
 import com.mds.lsp.tcl.diagnostic.Lints;
+import com.mds.lsp.tcl.diagnostic.TclDiagnostic;
 import com.mds.lsp.tcl.diagnostic.TclFileObject;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -147,6 +148,7 @@ class TclTextDocumentService implements TextDocumentService {
 
         // Organize diagnostics by file
         for (javax.tools.Diagnostic<? extends TclFileObject> error : diagnostics) {
+            TclDiagnostic tclDiagnostic = (TclDiagnostic) error;
             URI uri = error.getSource().toUri();
             PublishDiagnosticsParams publish =
                     files.computeIfAbsent(
@@ -154,7 +156,7 @@ class TclTextDocumentService implements TextDocumentService {
                             newUri ->
                                     new PublishDiagnosticsParams(
                                             newUri.toString(), new ArrayList<>()));
-            Lints.convert(error).ifPresent(publish.getDiagnostics()::add);
+            Lints.convert(tclDiagnostic).ifPresent(d -> publish.getDiagnostics().add(d));
         }
 
         // If there are no errors in a file, put an empty PublishDiagnosticsParams

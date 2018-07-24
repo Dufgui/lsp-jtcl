@@ -106,7 +106,7 @@ public class TclLanguageServer implements LanguageServer {
         TclParserHolder compiler =
                 TclParserHolder.create();
 
-        return new Configured(compiler);
+        return new Configured(compiler, new SymbolIndex());
     }
 
     private void clearDiagnostics() {

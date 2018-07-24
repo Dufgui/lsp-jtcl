@@ -4,21 +4,22 @@ package com.mds.lsp.tcl.diagnostic;
 import com.sun.tools.javac.api.ClientCodeWrapper;
 import com.sun.tools.javac.util.DiagnosticSource;
 import com.sun.tools.javac.util.JCDiagnostic;
+import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 
-import javax.tools.Diagnostic;
+
 import java.util.Locale;
 import java.util.Optional;
 import java.util.logging.Logger;
 
 public class Lints {
 
-    public static Optional<Diagnostic> convert(javax.tools.Diagnostic<? extends TclFileObject> error) {
+    public static Optional<Diagnostic> convert(TclDiagnostic error) {
         if (error.getStartPosition() != javax.tools.Diagnostic.NOPOS) {
             Range range = position(error);
-            TclDiagnostic diagnostic = new TclDiagnostic();
+            Diagnostic diagnostic = new Diagnostic();
             DiagnosticSeverity severity = severity(error.getKind());
 
             diagnostic.setSeverity(severity);
@@ -48,9 +49,8 @@ public class Lints {
         }
     }
 
-    private static Range position(javax.tools.Diagnostic<? extends TclFileObject> error) {
-        TclDiagnostic diagnostic = (TclDiagnostic) error;
-        long start = error.getStartPosition(), end = error.getEndPosition();
+    private static Range position(TclDiagnostic diagnostic) {
+        long start = diagnostic.getStartPosition(), end = diagnostic.getEndPosition();
 
         if (end == start) end = start + 1;
 
