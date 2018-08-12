@@ -110,7 +110,7 @@ public class TclLanguageServer implements LanguageServer {
     }
 
     private void clearDiagnostics() {
-        InferConfig.allJavaFiles(workspaceRoot).forEach(this::clearFileDiagnostics);
+        InferConfig.allTclFiles(workspaceRoot).forEach(this::clearFileDiagnostics);
     }
 
     private void clearFileDiagnostics(Path file) {
