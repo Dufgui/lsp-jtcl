@@ -10,12 +10,12 @@ import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
 
-public class TclParserHolder {
+public class TclParserAndInterpHolder {
     private final Interp interp = new Interp();
     private final RelocatedParser parser = new RelocatedParser();
 
-    public static TclParserHolder create() {
-        return new TclParserHolder();
+    public static TclParserAndInterpHolder create() {
+        return new TclParserAndInterpHolder();
     }
 
     public DiagnosticCollector<TclFileObject> evalBatch(Map<URI,Optional<String>> content) {

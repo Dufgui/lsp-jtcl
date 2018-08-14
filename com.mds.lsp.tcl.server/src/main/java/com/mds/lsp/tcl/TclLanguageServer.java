@@ -101,8 +101,8 @@ public class TclLanguageServer implements LanguageServer {
 
     private Configured createCompiler(TclSettings settings, Path workspaceRoot) {
 
-        TclParserHolder compiler =
-                TclParserHolder.create();
+        TclParserAndInterpHolder compiler =
+                TclParserAndInterpHolder.create();
 
         SymbolIndex symbolIndex = new SymbolIndex(workspaceRoot, textDocuments::openFiles, textDocuments::activeContent);
         return new Configured(compiler, symbolIndex);

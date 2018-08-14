@@ -1,6 +1,5 @@
 package com.mds.lsp.tcl.diagnostic;
 
-import javax.tools.JavaFileObject;
 import java.io.*;
 import java.net.URI;
 

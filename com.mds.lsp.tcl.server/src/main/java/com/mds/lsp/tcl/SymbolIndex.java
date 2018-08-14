@@ -1,10 +1,12 @@
 package com.mds.lsp.tcl;
 
+import com.google.common.collect.Maps;
 import tcl.lang.Parser;
 import tcl.lang.RelocatedParser;
 import tcl.lang.TclParse;
 import tcl.lang.TclToken;
 
+import javax.lang.model.element.TypeElement;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -15,6 +17,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -121,11 +124,49 @@ public class SymbolIndex {
         return result;
     }
 
-    private void updateOpenFiles() {
+    public void updateOpenFiles() {
         finishedInitialIndex.join();
 
         updateIndex(openFiles.get().stream());
     }
 
     private static final Logger LOG = Logger.getLogger("main");
+
+    public Collection<URI> potentialReferences(String name) {
+        updateOpenFiles();
+
+        Map<URI, SourceFileIndex> hasName =
+                Maps.filterValues(sourcePathFiles, index -> index.references.contains(name));
+
+        return hasName.keySet();
+    }
+
+    public Optional<URI> findDeclaringFile(TypeElement topLevelClass) {
+        updateOpenFiles();
+
+        String qualifiedName = topLevelClass.getQualifiedName().toString();
+
+        return doFindDeclaringFile(qualifiedName);
+    }
+
+    private Optional<URI> doFindDeclaringFile(String qualifiedName) {
+        String namespaceName = Completions.mostIds(qualifiedName),
+                className = Completions.lastId(qualifiedName);
+        Predicate<Map.Entry<URI, SourceFileIndex>> containsClass =
+                entry -> {
+                    SourceFileIndex index = entry.getValue();
+
+                    return index.namespaceName.equals(namespaceName)
+                            && index.topLevelClasses
+                                    .stream()
+                                    .anyMatch(c -> c.equals(className));
+                };
+
+        return sourcePathFiles
+                .entrySet()
+                .stream()
+                .filter(containsClass)
+                .map(entry -> entry.getKey())
+                .findFirst();
+    }
 }
