@@ -105,7 +105,8 @@ public class TclLanguageServer implements LanguageServer {
                 TclParserAndInterpHolder.create();
 
         SymbolIndex symbolIndex = new SymbolIndex(workspaceRoot, textDocuments::openFiles, textDocuments::activeContent);
-        return new Configured(compiler, symbolIndex);
+        FindSymbols findSymbols = new FindSymbols(symbolIndex, compiler, textDocuments::activeContent);
+        return new Configured(compiler, symbolIndex, findSymbols);
     }
 
     private void clearDiagnostics() {
