@@ -6,11 +6,10 @@ import java.util.Optional;
 
 public class TclSettings {
 
-    public Tcl tcl = new Tcl();
+    public List<String> scriptPath = new ArrayList<>();
+    public String workingDir = new String();
+    public List<String> classpath = new ArrayList<>();
+    public List<String> loadpath = new ArrayList<>();
+    public Optional<String> tclHome = Optional.empty();
 
-    public static class Tcl {
-        public List<String> classPath = new ArrayList<>();
-        public List<String> externalDependencies = new ArrayList<>();
-        public Optional<String> tclHome = Optional.empty();
-    }
 }

@@ -41,15 +41,13 @@ public class TclLanguageServer implements LanguageServer {
         ServerCapabilities c = new ServerCapabilities();
 
         c.setTextDocumentSync(TextDocumentSyncKind.Incremental);
-        c.setDefinitionProvider(true);
+        c.setDefinitionProvider(false);
         c.setCompletionProvider(new CompletionOptions(true, ImmutableList.of(".")));
-        c.setHoverProvider(true);
+        c.setHoverProvider(false);
         c.setWorkspaceSymbolProvider(true);
         c.setReferencesProvider(true);
         c.setDocumentSymbolProvider(true);
-        c.setCodeActionProvider(true);
-        c.setExecuteCommandProvider(
-                new ExecuteCommandOptions(ImmutableList.of("Java.importClass")));
+        c.setCodeActionProvider(false);
         c.setSignatureHelpProvider(new SignatureHelpOptions(ImmutableList.of("(", ",")));
 
         result.setCapabilities(c);
@@ -106,7 +104,8 @@ public class TclLanguageServer implements LanguageServer {
         TclParserHolder compiler =
                 TclParserHolder.create();
 
-        return new Configured(compiler, new SymbolIndex());
+        SymbolIndex symbolIndex = new SymbolIndex(workspaceRoot, textDocuments::openFiles, textDocuments::activeContent);
+        return new Configured(compiler, symbolIndex);
     }
 
     private void clearDiagnostics() {

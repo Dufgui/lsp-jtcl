@@ -4,11 +4,11 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
-class SourceFileIndex {
-    String packageName = "";
+public class SourceFileIndex {
+    String namespaceName = "";
 
     /** Simple names of classes declared in this file */
-    final Set<String> topLevelTcls = new HashSet<>();
+    final Set<String> topLevelClasses = new HashSet<>();
 
     /** Simple name of declarations in this file, including classes, methods, and fields */
     final Set<String> declarations = new HashSet<>();

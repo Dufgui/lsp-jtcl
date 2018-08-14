@@ -1,9 +1,6 @@
 package com.mds.lsp.tcl.diagnostic;
 
 
-import com.sun.tools.javac.api.ClientCodeWrapper;
-import com.sun.tools.javac.util.DiagnosticSource;
-import com.sun.tools.javac.util.JCDiagnostic;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Position;

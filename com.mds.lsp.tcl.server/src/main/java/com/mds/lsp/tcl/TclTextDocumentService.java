@@ -1,6 +1,7 @@
 package com.mds.lsp.tcl;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 import com.mds.lsp.tcl.diagnostic.Lints;
 import com.mds.lsp.tcl.diagnostic.TclDiagnostic;
 import com.mds.lsp.tcl.diagnostic.TclFileObject;
@@ -33,6 +34,11 @@ class TclTextDocumentService implements TextDocumentService {
     /** Text of file, if it is in the active set */
     Optional<String> activeContent(URI file) {
         return Optional.ofNullable(activeDocuments.get(file)).map(doc -> doc.content);
+    }
+
+    /** All open files, not including things like old git-versions in a diff view */
+    Set<URI> openFiles() {
+        return Sets.filter(activeDocuments.keySet(), uri -> uri.getScheme().equals("file"));
     }
 
     @Override

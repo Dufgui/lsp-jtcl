@@ -1,13 +1,12 @@
 package com.mds.lsp.tcl;
 
-import com.mds.lsp.tcl.diagnostic.TclFileObject;
+import tcl.lang.Parser;
 import tcl.lang.RelocatedParser;
 import tcl.lang.TclParse;
+import tcl.lang.TclToken;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,8 +32,6 @@ public class SymbolIndex {
     private final Map<URI, SourceFileIndex> sourcePathFiles = new ConcurrentHashMap<>();
 
     private final CompletableFuture<?> finishedInitialIndex = new CompletableFuture<>();
-
-    private final Map<URI, String> warnedPackageDirectoryConflict = new HashMap<>();
 
     SymbolIndex(
             Path workspaceRoot,
@@ -62,7 +59,7 @@ public class SymbolIndex {
     private void updateFile(URI each) {
         if (needsUpdate(each)) {
             List<TclParse> parse = parse(each);
-            update(parse);
+            update(each, parse);
         }
     }
 
@@ -81,13 +78,34 @@ public class SymbolIndex {
         }
     }
 
+    /** Update a file in the index */
+    private void update(URI file, List<TclParse> tclParses) {
+        SourceFileIndex index = new SourceFileIndex();
+        for (TclParse parse: tclParses) {
+            for (int i = 0; i < parse.numTokens(); i++) {
+                TclToken token = parse.getToken(i);
+                switch (token.getType()) {
+                case Parser.TCL_TOKEN_WORD:
+                case Parser.TCL_TOKEN_SIMPLE_WORD:
+                case Parser.TCL_TOKEN_TEXT:
+                case Parser.TCL_TOKEN_BS:
+                case Parser.TCL_TOKEN_COMMAND:
+                case Parser.TCL_TOKEN_VARIABLE:
+                case Parser.TCL_TOKEN_SUB_EXPR:
+                case Parser.TCL_TOKEN_OPERATOR:
+                //TODO feed the index
+                }
+            }
 
-    /**
-     * Guess the source path by looking at package declarations in .java files.
-     *
-     * <p>For example, if the file src/com/example/Test.java has the package declaration `package
-     * com.example;` then the source root is `src`.
-     */
+        }
+        sourcePathFiles.put(file, index);
+    }
+
+
+    private List<TclParse> parse(URI source) {
+        return RelocatedParser.parseCommand(source.getPath());
+    }
+
     Set<Path> sourcePath() {
         updateOpenFiles();
 
@@ -96,37 +114,18 @@ public class SymbolIndex {
         sourcePathFiles.forEach(
                 (uri, index) -> {
                     Path dir = Paths.get(uri).getParent();
-                    String packagePath = index.packageName.replace('.', File.separatorChar);
+                    result.add(dir);
 
-                    if (!dir.endsWith(packagePath)
-                            && !warnedPackageDirectoryConflict
-                                    .getOrDefault(uri, "?")
-                                    .equals(packagePath)) {
-                        LOG.warning("Java source file " + uri + " is not in " + packagePath);
-
-                        warnedPackageDirectoryConflict.put(uri, packagePath);
-                    } else {
-                        int up = Paths.get(packagePath).getNameCount();
-                        Path truncate = dir;
-
-                        for (int i = 0; i < up; i++) truncate = truncate.getParent();
-
-                        result.add(truncate);
-                    }
                 });
 
         return result;
     }
 
-    private List<TclParse> parse(URI source) {
-        try {
-            return RelocatedParser.parseCommand();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    private void updateOpenFiles() {
+        finishedInitialIndex.join();
+
+        updateIndex(openFiles.get().stream());
     }
-
-
 
     private static final Logger LOG = Logger.getLogger("main");
 }

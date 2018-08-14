@@ -1,6 +1,5 @@
 package com.mds.lsp.tcl;
 
-import com.sun.jdi.Location;
 
 public class Configured {
 
