@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 class TclWorkspaceService implements WorkspaceService {
     private static final Logger LOG = Logger.getLogger("main");
@@ -38,8 +39,15 @@ class TclWorkspaceService implements WorkspaceService {
     }
 
     @Override
-    public CompletableFuture<List<? extends SymbolInformation>> symbol(WorkspaceSymbolParams workspaceSymbolParams) {
-        return null;
+    public CompletableFuture<List<? extends SymbolInformation>> symbol(WorkspaceSymbolParams params) {
+        List<SymbolInformation> infos =
+                server.configured()
+                        .index
+                        .search(params.getQuery())
+                        .limit(server.maxItems)
+                        .collect(Collectors.toList());
+
+        return CompletableFuture.completedFuture(infos);
     }
 
     @Override
@@ -53,12 +61,13 @@ class TclWorkspaceService implements WorkspaceService {
             Path path = Paths.get(URI.create(change.getUri()));
 
             switch (change.getType()) {
+                //TODO optimize this
                 case Changed:
-                    //todo
+                    textDocuments.doLint(textDocuments.openFiles());
                 case Deleted:
-                    //todo
+                    textDocuments.doLint(textDocuments.openFiles());
                 case Created:
-                    //TODO
+                    textDocuments.doLint(textDocuments.openFiles());
                 default:
                     // Nothing to do
             }

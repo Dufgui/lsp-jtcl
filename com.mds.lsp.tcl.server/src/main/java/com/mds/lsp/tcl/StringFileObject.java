@@ -8,7 +8,7 @@ import java.net.URI;
 
 class StringFileObject extends SimpleTclFileObject {
     private final String content;
-    private final URI path; // TODO rename
+    private final URI path;
 
     StringFileObject(String content, URI path) {
         super(path, Kind.SOURCE);

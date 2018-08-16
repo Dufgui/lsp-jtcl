@@ -1,6 +1,7 @@
 package com.mds.lsp.tcl;
 
 import com.google.common.collect.Maps;
+import org.eclipse.lsp4j.SymbolInformation;
 import tcl.lang.Parser;
 import tcl.lang.RelocatedParser;
 import tcl.lang.TclParse;
@@ -20,6 +21,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
+import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 public class SymbolIndex {
@@ -168,5 +170,53 @@ public class SymbolIndex {
                 .filter(containsClass)
                 .map(entry -> entry.getKey())
                 .findFirst();
+    }
+
+     /** Search all indexed symbols */
+    public Stream<SymbolInformation> search(String query) {
+        updateOpenFiles();
+
+        Predicate<CharSequence> nameMatchesQuery =
+                name -> Completions.containsCharactersInOrder(name, query, true);
+        Predicate<URI> fileMatchesQuery =
+                uri -> sourcePathFiles.get(uri).declarations.stream().anyMatch(nameMatchesQuery);
+        Collection<URI> open = openFiles.get();
+        Stream<URI> openFirst =
+                Stream.concat(
+                        open.stream(),
+                        sourcePathFiles.keySet().stream().filter(uri -> !open.contains(uri)));
+
+        return openFirst
+                .filter(fileMatchesQuery)
+                .flatMap(this::allInFile)
+                .filter(info -> nameMatchesQuery.test(info.getName()));
+    }
+
+    /** Get all declarations in an open file */
+    public Stream<SymbolInformation> allInFile(URI source) {
+        LOG.info("Search " + source);
+
+        List<SymbolInformation> result = new ArrayList<>();
+        List<TclParse> tclParses = RelocatedParser.parseCommand(source.getPath());
+
+        for (TclParse parse: tclParses) {
+            for (int i = 0; i < parse.numTokens(); i++) {
+                TclToken token = parse.getToken(i);
+                switch (token.getType()) {
+                case Parser.TCL_TOKEN_WORD:
+                case Parser.TCL_TOKEN_SIMPLE_WORD:
+                case Parser.TCL_TOKEN_TEXT:
+                case Parser.TCL_TOKEN_BS:
+                case Parser.TCL_TOKEN_COMMAND:
+                    //if(token.)
+                case Parser.TCL_TOKEN_VARIABLE:
+                case Parser.TCL_TOKEN_SUB_EXPR:
+                case Parser.TCL_TOKEN_OPERATOR:
+                //TODO feed the index
+                }
+            }
+        }
+
+        return result.stream();
     }
 }
