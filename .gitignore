@@ -1,6 +1,23 @@
 # jtcl is an another repo
 jtcl/
 
+/com.mds.lsp.tcl.server/out
+/com.mds.lsp.tcl.server/node_modules
+/target
+/com.mds.lsp.tcl.server/target
+
+/com.mds.lsp.tcl.server/dependency-reduced-pom.xml
+/com.mds.lsp.tcl.server/classpath.txt
+/com.mds.lsp.tcl.server/test-classpath.txt
+/com.mds.lsp.tcl.server/docpath.txt
+
+*.log
+*.log.*
+.idea
+*.iml
+*.vsix
+.DS_store
+
 # Compiled class file
 *.class
 
