@@ -49,6 +49,7 @@ export function activate(context: VSCode.ExtensionContext) {
         let args = [
             '-cp', fatJar,
             '-Xverify:none', // helps VisualVM avoid 'error 62'
+            '-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y',
             'com.mds.lsp.tcl.Main'
         ];
 

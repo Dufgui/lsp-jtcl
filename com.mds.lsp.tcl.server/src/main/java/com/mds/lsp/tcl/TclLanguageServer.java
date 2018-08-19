@@ -35,15 +35,17 @@ public class TclLanguageServer implements LanguageServer {
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
-        workspaceRoot = Paths.get(params.getRootPath()).toAbsolutePath().normalize();
+        if(params.getRootUri() != null) {
+            workspaceRoot = Paths.get(params.getRootUri()).toAbsolutePath().normalize();
+        }
 
         InitializeResult result = new InitializeResult();
         ServerCapabilities c = new ServerCapabilities();
 
         c.setTextDocumentSync(TextDocumentSyncKind.Incremental);
-        c.setDefinitionProvider(false);
+        c.setDefinitionProvider(true);
         c.setCompletionProvider(new CompletionOptions(true, ImmutableList.of(".")));
-        c.setHoverProvider(false);
+        c.setHoverProvider(true);
         c.setWorkspaceSymbolProvider(true);
         c.setReferencesProvider(true);
         c.setDocumentSymbolProvider(true);
@@ -80,22 +82,23 @@ public class TclLanguageServer implements LanguageServer {
      * paths
      */
     Configured configured() {
-        Instant inferConfig = InferConfig.buildFilesModified(workspaceRoot);
+        if(workspaceRoot != null) {
+            Instant inferConfig = InferConfig.buildFilesModified(workspaceRoot);
 
-        if (cacheConfigured == null
-                || !Objects.equals(workspace.settings(), cacheSettings)
-                || !Objects.equals(workspaceRoot, cacheWorkspaceRoot)
-                || cacheInferConfig.isBefore(inferConfig)
-                || !cacheConfigured.index.sourcePath().equals(cacheSourcePath)) {
-            cacheConfigured = createCompiler(workspace.settings(), workspaceRoot);
-            cacheSettings = workspace.settings();
-            cacheWorkspaceRoot = workspaceRoot;
-            cacheInferConfig = inferConfig;
-            cacheSourcePath = cacheConfigured.index.sourcePath();
+            if (cacheConfigured == null
+                    || !Objects.equals(workspace.settings(), cacheSettings)
+                    || !Objects.equals(workspaceRoot, cacheWorkspaceRoot)
+                    || cacheInferConfig.isBefore(inferConfig)
+                    || !cacheConfigured.index.sourcePath().equals(cacheSourcePath)) {
+                cacheConfigured = createCompiler(workspace.settings(), workspaceRoot);
+                cacheSettings = workspace.settings();
+                cacheWorkspaceRoot = workspaceRoot;
+                cacheInferConfig = inferConfig;
+                cacheSourcePath = cacheConfigured.index.sourcePath();
 
-            clearDiagnostics();
+                clearDiagnostics();
+            }
         }
-
         return cacheConfigured;
     }
 

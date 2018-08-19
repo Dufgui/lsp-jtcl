@@ -30,6 +30,10 @@ class InferConfig {
 
     // TODO move to TclLanguageServer
     static Stream<Path> allTclFiles(Path dir) {
+        if(dir == null) {
+            return Stream.empty();
+        }
+
         PathMatcher match = FileSystems.getDefault().getPathMatcher("glob:*.tcl");
 
         try {

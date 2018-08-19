@@ -189,16 +189,16 @@ class TclTextDocumentService implements TextDocumentService {
 
     @Override
     public void didChange(DidChangeTextDocumentParams params) {
-
+        return;
     }
 
     @Override
     public void didClose(DidCloseTextDocumentParams params) {
-
+        return;
     }
 
     @Override
     public void didSave(DidSaveTextDocumentParams didSaveTextDocumentParams) {
-
+        return;
     }
 }

@@ -3,6 +3,7 @@ package com.mds.lsp.tcl;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.WorkspaceService;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -74,5 +75,10 @@ class TclWorkspaceService implements WorkspaceService {
 
 
         }
+    }
+
+    @Override
+    public void didChangeWorkspaceFolders(DidChangeWorkspaceFoldersParams params) {
+        throw new NotImplementedException();
     }
 }
