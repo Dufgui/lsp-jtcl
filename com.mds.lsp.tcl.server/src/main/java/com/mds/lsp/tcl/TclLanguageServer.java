@@ -2,11 +2,10 @@ package com.mds.lsp.tcl;
 
 import com.google.common.collect.ImmutableList;
 import org.eclipse.lsp4j.*;
-import org.eclipse.lsp4j.services.LanguageClient;
-import org.eclipse.lsp4j.services.LanguageServer;
-import org.eclipse.lsp4j.services.TextDocumentService;
-import org.eclipse.lsp4j.services.WorkspaceService;
+import org.eclipse.lsp4j.services.*;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -15,9 +14,10 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
-public class TclLanguageServer implements LanguageServer {
+public class TclLanguageServer implements LanguageServer, LanguageClientAware {
 
     private static final Logger LOG = Logger.getLogger("main");
     int maxItems = 50;
@@ -36,7 +36,15 @@ public class TclLanguageServer implements LanguageServer {
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         if(params.getRootUri() != null) {
-            workspaceRoot = Paths.get(params.getRootUri()).toAbsolutePath().normalize();
+            URI uri = null;
+            try {
+                uri = new URI(params.getRootUri());
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+            if (uri != null) {
+                workspaceRoot = Paths.get(uri).toAbsolutePath().normalize();
+            }
         }
 
         InitializeResult result = new InitializeResult();
@@ -59,12 +67,25 @@ public class TclLanguageServer implements LanguageServer {
 
     @Override
     public CompletableFuture<Object> shutdown() {
+        try {
+            client.get().logMessage(new MessageParams(MessageType.Error,"shutdown"));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
         return CompletableFuture.completedFuture(null);
     }
 
     @Override
     public void exit() {
-
+        try {
+            client.get().logMessage(new MessageParams(MessageType.Error,"exit"));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -122,5 +143,10 @@ public class TclLanguageServer implements LanguageServer {
                         c.publishDiagnostics(
                                 new PublishDiagnosticsParams(
                                         file.toUri().toString(), new ArrayList<>())));
+    }
+
+    @Override
+    public void connect(LanguageClient client) {
+        this.client.complete(client);
     }
 }
