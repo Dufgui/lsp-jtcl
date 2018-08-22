@@ -3,7 +3,6 @@ package com.mds.lsp.tcl;
 import com.google.common.collect.Maps;
 import org.eclipse.lsp4j.SymbolInformation;
 import tcl.lang.Parser;
-import tcl.lang.RelocatedParser;
 import tcl.lang.TclParse;
 import tcl.lang.TclToken;
 
@@ -31,7 +30,7 @@ public class SymbolIndex {
     private final Path workspaceRoot;
     private final Supplier<Collection<URI>> openFiles;
     private final Function<URI, Optional<String>> activeContent;
-    private final RelocatedParser parser = new RelocatedParser();
+    private final Parser parser = new Parser();
 
     /** Source path files, for which we support methods and classes */
     private final Map<URI, SourceFileIndex> sourcePathFiles = new ConcurrentHashMap<>();
@@ -98,6 +97,7 @@ public class SymbolIndex {
                 case Parser.TCL_TOKEN_VARIABLE:
                 case Parser.TCL_TOKEN_SUB_EXPR:
                 case Parser.TCL_TOKEN_OPERATOR:
+                    token.toString();
                 //TODO feed the index
                 }
             }
@@ -108,7 +108,7 @@ public class SymbolIndex {
 
 
     private List<TclParse> parse(URI source) {
-        return RelocatedParser.parseCommand(source.getPath());
+        return Parser.parseCommand(source.getPath());
     }
 
     Set<Path> sourcePath() {
@@ -197,7 +197,7 @@ public class SymbolIndex {
         LOG.info("Search " + source);
 
         List<SymbolInformation> result = new ArrayList<>();
-        List<TclParse> tclParses = RelocatedParser.parseCommand(source.getPath());
+        List<TclParse> tclParses = Parser.parseCommand(source.getPath());
 
         for (TclParse parse: tclParses) {
             for (int i = 0; i < parse.numTokens(); i++) {

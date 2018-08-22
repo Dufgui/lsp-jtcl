@@ -3,7 +3,7 @@ package com.mds.lsp.tcl;
 
 import com.mds.lsp.tcl.diagnostic.TclFileObject;
 import tcl.lang.Interp;
-import tcl.lang.RelocatedParser;
+import tcl.lang.Parser;
 
 import javax.tools.DiagnosticCollector;
 import java.net.URI;
@@ -12,7 +12,7 @@ import java.util.Optional;
 
 public class TclParserAndInterpHolder {
     private final Interp interp = new Interp();
-    private final RelocatedParser parser = new RelocatedParser();
+    private final Parser parser = new Parser();
 
     public static TclParserAndInterpHolder create() {
         return new TclParserAndInterpHolder();
