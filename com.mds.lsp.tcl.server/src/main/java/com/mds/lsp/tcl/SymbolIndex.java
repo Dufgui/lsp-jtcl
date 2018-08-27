@@ -1,12 +1,12 @@
 package com.mds.lsp.tcl;
 
 import com.google.common.collect.Maps;
-import org.eclipse.lsp4j.SymbolInformation;
+import org.eclipse.lsp4j.*;
 import tcl.lang.Parser;
 import tcl.lang.TclParse;
 import tcl.lang.TclToken;
 
-import javax.lang.model.element.TypeElement;
+
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -20,7 +20,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
-import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 public class SymbolIndex {
@@ -28,9 +27,10 @@ public class SymbolIndex {
 
 
     private final Path workspaceRoot;
+    private final TclParserAndInterpHolder interpreter;
     private final Supplier<Collection<URI>> openFiles;
     private final Function<URI, Optional<String>> activeContent;
-    private final Parser parser = new Parser();
+
 
     /** Source path files, for which we support methods and classes */
     private final Map<URI, SourceFileIndex> sourcePathFiles = new ConcurrentHashMap<>();
@@ -39,9 +39,11 @@ public class SymbolIndex {
 
     SymbolIndex(
             Path workspaceRoot,
+            TclParserAndInterpHolder interpreter,
             Supplier<Collection<URI>> openFiles,
             Function<URI, Optional<String>> activeContent) {
         this.workspaceRoot = workspaceRoot;
+        this.interpreter = interpreter;
         this.openFiles = openFiles;
         this.activeContent = activeContent;
 
@@ -50,7 +52,6 @@ public class SymbolIndex {
 
 
     private void initialIndex() {
-        // TODO send a progress bar to the user
         updateIndex(InferConfig.allTclFiles(workspaceRoot).map(Path::toUri));
 
         finishedInitialIndex.complete(null);
@@ -62,7 +63,7 @@ public class SymbolIndex {
 
     private void updateFile(URI each) {
         if (needsUpdate(each)) {
-            List<TclParse> parse = parse(each);
+            List<TclParse> parse = interpreter.parse(each);
             update(each, parse);
         }
     }
@@ -89,26 +90,22 @@ public class SymbolIndex {
             for (int i = 0; i < parse.numTokens(); i++) {
                 TclToken token = parse.getToken(i);
                 switch (token.getType()) {
-                case Parser.TCL_TOKEN_WORD:
-                case Parser.TCL_TOKEN_SIMPLE_WORD:
                 case Parser.TCL_TOKEN_TEXT:
-                case Parser.TCL_TOKEN_BS:
-                case Parser.TCL_TOKEN_COMMAND:
+                    index.references.add(token.getTokenString());
+                    break;
                 case Parser.TCL_TOKEN_VARIABLE:
-                case Parser.TCL_TOKEN_SUB_EXPR:
-                case Parser.TCL_TOKEN_OPERATOR:
-                    token.toString();
-                //TODO feed the index
+                    index.declarations.add(token.getTokenString());
+                    break;
+                case Parser.TCL_TOKEN_COMMAND:
+                    index.references.add(token.getTokenString());
+                    break;
+                default:
+                    //do nothing
                 }
             }
-
+            parse.release();
         }
         sourcePathFiles.put(file, index);
-    }
-
-
-    private List<TclParse> parse(URI source) {
-        return Parser.parseCommand(source.getPath());
     }
 
     Set<Path> sourcePath() {
@@ -143,15 +140,7 @@ public class SymbolIndex {
         return hasName.keySet();
     }
 
-    public Optional<URI> findDeclaringFile(TypeElement topLevelClass) {
-        updateOpenFiles();
-
-        String qualifiedName = topLevelClass.getQualifiedName().toString();
-
-        return doFindDeclaringFile(qualifiedName);
-    }
-
-    private Optional<URI> doFindDeclaringFile(String qualifiedName) {
+    public Optional<URI> findDeclaringFile(String qualifiedName) {
         String namespaceName = Completions.mostIds(qualifiedName),
                 className = Completions.lastId(qualifiedName);
         Predicate<Map.Entry<URI, SourceFileIndex>> containsClass =
@@ -168,7 +157,7 @@ public class SymbolIndex {
                 .entrySet()
                 .stream()
                 .filter(containsClass)
-                .map(entry -> entry.getKey())
+                .map(Map.Entry::getKey)
                 .findFirst();
     }
 
@@ -203,20 +192,55 @@ public class SymbolIndex {
             for (int i = 0; i < parse.numTokens(); i++) {
                 TclToken token = parse.getToken(i);
                 switch (token.getType()) {
-                case Parser.TCL_TOKEN_WORD:
-                case Parser.TCL_TOKEN_SIMPLE_WORD:
                 case Parser.TCL_TOKEN_TEXT:
-                case Parser.TCL_TOKEN_BS:
-                case Parser.TCL_TOKEN_COMMAND:
-                    //if(token.)
+                    result.add(new SymbolInformation(token.getTokenString(), SymbolKind.Event, toLocation(source, parse, token)));
+                    break;
                 case Parser.TCL_TOKEN_VARIABLE:
-                case Parser.TCL_TOKEN_SUB_EXPR:
-                case Parser.TCL_TOKEN_OPERATOR:
-                //TODO feed the index
+                    result.add(new SymbolInformation(token.getTokenString(), SymbolKind.Variable, toLocation(source, parse, token)));
+                    break;
+                case Parser.TCL_TOKEN_COMMAND:
+                    result.add(new SymbolInformation(token.getTokenString(), SymbolKind.Function, toLocation(source, parse, token)));
+                    break;
+                default:
+                    //do nothing
                 }
             }
         }
 
         return result.stream();
+    }
+
+    private Location toLocation(URI source, TclParse parse, TclToken token) {
+        //FIXME optimize it by externalize eol in a cache
+        int startLine = parse.getLineNum();
+
+        int lastEolOffset = 0;
+        //default eol char
+        char eolChar = ' ';
+        for (int i = 0; i < token.getScriptIndex(); i++) {
+            if(token.getScriptArray()[i] == '\n' || token.getScriptArray()[i] == '\r' ) {
+                lastEolOffset = i;
+                if(eolChar != ' ' && eolChar == token.getScriptArray()[i]) {
+                    ++startLine;
+                } else if (eolChar==' ') {
+                    eolChar = token.getScriptArray()[i];
+                    ++startLine;
+                }
+            }
+        }
+        int startCharacter = token.getScriptIndex() - lastEolOffset;
+        int endLine = startLine;
+        for (int i = 0; i < token.getSize(); i++) {
+            int j = i + token.getScriptIndex();
+            if(token.getScriptArray()[j] == '\n' || token.getScriptArray()[j] == '\r' ) {
+                lastEolOffset = j;
+                if(eolChar == token.getScriptArray()[i]) {
+                    ++endLine;
+                }
+            }
+        }
+        int endCharacter = token.getScriptIndex() - lastEolOffset;
+
+        return new Location(source.getPath(), new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter)));
     }
 }

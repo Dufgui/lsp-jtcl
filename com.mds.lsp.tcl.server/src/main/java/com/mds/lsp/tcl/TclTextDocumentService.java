@@ -12,7 +12,13 @@ import org.eclipse.lsp4j.services.TextDocumentService;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -42,8 +48,32 @@ class TclTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams completionParams) {
-        throw new UnsupportedOperationException();
+    public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
+        Instant started = Instant.now();
+        URI uri = URI.create(params.getTextDocument().getUri());
+        Optional<String> content = activeContent(uri);
+        int line = params.getPosition().getLine() + 1;
+        int character = params.getPosition().getCharacter() + 1;
+
+        LOG.info(String.format("completion at %s %d:%d", uri, line, character));
+
+        Configured config = server.configured();
+        FocusedResult result = config.interpreter.compileFocused(uri, content, line, character, true);
+        List<CompletionItem> items =
+                Completions.at(result, config.index)
+                        .limit(server.maxItems)
+                        .collect(Collectors.toList());
+        CompletionList list = new CompletionList(items.size() == server.maxItems, items);
+        Duration elapsed = Duration.between(started, Instant.now());
+
+        if (list.isIncomplete())
+            LOG.info(
+                    String.format(
+                            "Found %d items (incomplete) in %d ms",
+                            items.size(), elapsed.toMillis()));
+        else LOG.info(String.format("Found %d items in %d ms", items.size(), elapsed.toMillis()));
+
+        return CompletableFuture.completedFuture(Either.forRight(list));
     }
 
     @Override
@@ -52,33 +82,64 @@ class TclTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<Hover> hover(TextDocumentPositionParams textDocumentPositionParams) {
+    public CompletableFuture<Hover> hover(TextDocumentPositionParams params) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams textDocumentPositionParams) {
+    public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams params) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public CompletableFuture<List<? extends Location>> definition(TextDocumentPositionParams textDocumentPositionParams) {
+    public CompletableFuture<List<? extends Location>> definition(TextDocumentPositionParams params) {
+        URI uri = URI.create(params.getTextDocument().getUri());
+        Optional<String> content = activeContent(uri);
+        int line = params.getPosition().getLine() + 1;
+        int character = params.getPosition().getCharacter() + 1;
+
+        LOG.info(String.format("definition at %s %d:%d", uri, line, character));
+
+        Configured config = server.configured();
+        FocusedResult result = config.interpreter.compileFocused(uri, content, line, character, false);
+        List<Location> locations =
+                References.gotoDefinition(result, config.find)
+                        .map(Collections::singletonList)
+                        .orElseGet(Collections::emptyList);
+        return CompletableFuture.completedFuture(locations);
+    }
+
+    @Override
+    public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
+        URI uri = URI.create(params.getTextDocument().getUri());
+        Optional<String> content = activeContent(uri);
+        int line = params.getPosition().getLine() + 1;
+        int character = params.getPosition().getCharacter() + 1;
+
+        LOG.info(String.format("references at %s %d:%d", uri, line, character));
+
+        Configured config = server.configured();
+        FocusedResult result = config.interpreter.compileFocused(uri, content, line, character, false);
+        List<Location> locations =
+                References.findReferences(result, config.find)
+                        .limit(server.maxItems)
+                        .collect(Collectors.toList());
+
+        return CompletableFuture.completedFuture(locations);
+    }
+
+    @Override
+    public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(TextDocumentPositionParams params) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public CompletableFuture<List<? extends Location>> references(ReferenceParams referenceParams) {
-        throw new UnsupportedOperationException();
-    }
+    public CompletableFuture<List<? extends SymbolInformation>> documentSymbol(DocumentSymbolParams params) {
+        URI uri = URI.create(params.getTextDocument().getUri());
+        List<SymbolInformation> symbols =
+                server.configured().index.allInFile(uri).collect(Collectors.toList());
 
-    @Override
-    public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(TextDocumentPositionParams textDocumentPositionParams) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public CompletableFuture<List<? extends SymbolInformation>> documentSymbol(DocumentSymbolParams documentSymbolParams) {
-        throw new UnsupportedOperationException();
+        return CompletableFuture.completedFuture(symbols);
     }
 
     @Override
@@ -133,7 +194,7 @@ class TclTextDocumentService implements TextDocumentService {
         Map<URI, Optional<String>> content =
                 paths.stream().collect(Collectors.toMap(f -> f, this::activeContent));
         DiagnosticCollector<TclFileObject> compile =
-                server.configured().interpreter.evalBatch(content);
+                server.configured().interpreter.parseBatch(content);
 
         errors.addAll(compile.getDiagnostics());
 
@@ -189,16 +250,82 @@ class TclTextDocumentService implements TextDocumentService {
 
     @Override
     public void didChange(DidChangeTextDocumentParams params) {
-        throw new UnsupportedOperationException();
+        VersionedTextDocumentIdentifier document = params.getTextDocument();
+        URI uri = URI.create(document.getUri());
+        VersionedContent existing = activeDocuments.get(uri);
+        String newText = existing.content;
+
+        if (document.getVersion() > existing.version) {
+            for (TextDocumentContentChangeEvent change : params.getContentChanges()) {
+                if (change.getRange() == null)
+                    activeDocuments.put(
+                            uri, new VersionedContent(change.getText(), document.getVersion()));
+                else newText = patch(newText, change);
+            }
+
+            activeDocuments.put(uri, new VersionedContent(newText, document.getVersion()));
+        } else
+            LOG.warning(
+                    "Ignored change with version "
+                            + document.getVersion()
+                            + " <= "
+                            + existing.version);
+    }
+
+
+    private String patch(String sourceText, TextDocumentContentChangeEvent change) {
+        try {
+            Range range = change.getRange();
+            BufferedReader reader = new BufferedReader(new StringReader(sourceText));
+            StringWriter writer = new StringWriter();
+
+            // Skip unchanged lines
+            int line = 0;
+
+            while (line < range.getStart().getLine()) {
+                writer.write(reader.readLine() + '\n');
+                line++;
+            }
+
+            // Skip unchanged chars
+            for (int character = 0; character < range.getStart().getCharacter(); character++)
+                writer.write(reader.read());
+
+            // Write replacement text
+            writer.write(change.getText());
+
+            // Skip replaced text
+            reader.skip(change.getRangeLength());
+
+            // Write remaining text
+            while (true) {
+                int next = reader.read();
+
+                if (next == -1) return writer.toString();
+                else writer.write(next);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void didClose(DidCloseTextDocumentParams params) {
-        throw new UnsupportedOperationException();
+        TextDocumentIdentifier document = params.getTextDocument();
+        URI uri = URI.create(document.getUri());
+
+        // Remove from source cache
+        activeDocuments.remove(uri);
+
+        // Clear diagnostics
+        client.join()
+                .publishDiagnostics(
+                        new PublishDiagnosticsParams(uri.toString(), new ArrayList<>()));
     }
 
     @Override
-    public void didSave(DidSaveTextDocumentParams didSaveTextDocumentParams) {
-        //do nothing
+    public void didSave(DidSaveTextDocumentParams params) {
+        // Re-lint all active documents
+        doLint(openFiles());
     }
 }

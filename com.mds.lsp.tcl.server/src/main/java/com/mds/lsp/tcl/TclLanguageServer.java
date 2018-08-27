@@ -126,9 +126,9 @@ public class TclLanguageServer implements LanguageServer, LanguageClientAware {
     private Configured createCompiler(TclSettings settings, Path workspaceRoot) {
 
         TclParserAndInterpHolder compiler =
-                TclParserAndInterpHolder.create();
+                TclParserAndInterpHolder.create(client);
 
-        SymbolIndex symbolIndex = new SymbolIndex(workspaceRoot, textDocuments::openFiles, textDocuments::activeContent);
+        SymbolIndex symbolIndex = new SymbolIndex(workspaceRoot, compiler, textDocuments::openFiles, textDocuments::activeContent);
         FindSymbols findSymbols = new FindSymbols(symbolIndex, compiler, textDocuments::activeContent);
         return new Configured(compiler, symbolIndex, findSymbols);
     }

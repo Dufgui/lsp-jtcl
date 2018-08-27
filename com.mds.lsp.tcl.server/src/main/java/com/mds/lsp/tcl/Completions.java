@@ -1,8 +1,11 @@
 package com.mds.lsp.tcl;
 
 import org.eclipse.lsp4j.Command;
+import org.eclipse.lsp4j.CompletionItem;
 
 import java.util.logging.Logger;
+import java.util.stream.DoubleStream;
+import java.util.stream.Stream;
 
 class Completions {
 
@@ -21,14 +24,14 @@ class Completions {
     }
 
     static String mostIds(String qualifiedName) {
-        int lastDot = qualifiedName.lastIndexOf('.');
+        int lastDot = qualifiedName.lastIndexOf(':');
 
         if (lastDot == -1) return "";
         else return qualifiedName.substring(0, lastDot);
     }
 
     static String lastId(String qualifiedName) {
-        int lastDot = qualifiedName.lastIndexOf('.');
+        int lastDot = qualifiedName.lastIndexOf(':');
 
         if (lastDot == -1) return qualifiedName;
         else return qualifiedName.substring(lastDot + 1);
@@ -61,4 +64,14 @@ class Completions {
     }
 
     private static final Logger LOG = Logger.getLogger("main");
+
+    public static Stream<CompletionItem> at(FocusedResult compiled, SymbolIndex index) {
+        //TODO to implement
+        throw new UnsupportedOperationException();
+
+        /*Function<TreePath, Completions> newCompletions =
+                path -> new Completions(compiled.task, compiled.classPath, index, docs, path);
+        return compiled.cursor.map(newCompletions).map(Completions::get).orElseGet(Stream::empty);*/
+    }
+
 }
