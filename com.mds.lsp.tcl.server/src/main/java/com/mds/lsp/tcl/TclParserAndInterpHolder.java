@@ -44,11 +44,8 @@ public class TclParserAndInterpHolder {
         return file.map(f -> {
             try {
                 String script = f.getCharContent(false).toString();
-                interp.eval(script);
                 return Parser.parseCommand(script);
             } catch (IOException e) {
-                e.printStackTrace();
-            } catch (TclException e) {
                 e.printStackTrace();
             }
             return Collections.<TclParse>emptyList();
