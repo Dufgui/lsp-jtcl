@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class SourceFileIndex {
-    String namespaceName = "";
+    final Set<String> namespaces = new HashSet<>();
 
     /** Simple names of classes declared in this file */
     final Set<String> topLevelClasses = new HashSet<>();

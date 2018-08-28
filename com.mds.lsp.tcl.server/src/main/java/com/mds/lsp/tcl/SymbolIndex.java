@@ -2,9 +2,7 @@ package com.mds.lsp.tcl;
 
 import com.google.common.collect.Maps;
 import org.eclipse.lsp4j.*;
-import tcl.lang.Parser;
-import tcl.lang.TclParse;
-import tcl.lang.TclToken;
+import tcl.lang.*;
 
 
 import java.io.IOException;
@@ -86,22 +84,54 @@ public class SymbolIndex {
     /** Update a file in the index */
     private void update(URI file, List<TclParse> tclParses) {
         SourceFileIndex index = new SourceFileIndex();
+        //int tokenIndex;
+        //TclToken token;
         for (TclParse parse: tclParses) {
-            for (int i = 0; i < parse.numTokens(); i++) {
-                TclToken token = parse.getToken(i);
-                switch (token.getType()) {
-                case Parser.TCL_TOKEN_TEXT:
-                    index.references.add(token.getTokenString());
-                    break;
-                case Parser.TCL_TOKEN_VARIABLE:
-                    index.declarations.add(token.getTokenString());
-                    break;
-                case Parser.TCL_TOKEN_COMMAND:
-                    index.references.add(token.getTokenString());
-                    break;
-                default:
-                    //do nothing
+            if(parse.getNumTokens() > 0) {
+                TclToken cmdToken = parse.getToken(0);
+                if(cmdToken.getTokenString().equals("set")) {
+                    if(parse.getNumTokens() >= 1) {
+                        TclToken nameToken = parse.getToken(1);
+                        String tokenString = nameToken.getTokenString();
+                        if(tokenString.indexOf('(') != -1) {
+                            tokenString = tokenString.substring(0, tokenString.indexOf('('));
+                            index.declarations.add(tokenString);
+                        } else {
+                            index.declarations.add(tokenString);
+                        }
+                    }
+                } else if(cmdToken.getTokenString().equals("proc")) {
+                    if(parse.getNumTokens() >= 1) {
+                        TclToken nameToken = parse.getToken(1);
+                        index.declarations.add(nameToken.getTokenString());
+                    }
+                } else if(cmdToken.getTokenString().equals("variable")) {
+                    for (int i = 1; i < parse.getNumTokens(); i=i+2) {
+                        TclToken nameToken = parse.getToken(i);
+                        index.references.add(nameToken.getTokenString());
+                    }
+                } else if(cmdToken.getTokenString().equals("namespace")) {
+                    if(parse.getNumTokens() >= 2) {
+                        TclToken subCmdToken = parse.getToken(1);
+                        if(subCmdToken.getTokenString().equals("eval")) {
+                            TclToken nameToken = parse.getToken(2);
+                            index.namespaces.add(nameToken.getTokenString());
+                        }
+                    }
+                } else {
+                    for (int i = 1; i < parse.getNumTokens(); i++) {
+                        TclToken nameToken = parse.getToken(i);
+                        switch (nameToken.getType()) {
+                            case Parser.TCL_TOKEN_TEXT:
+                                if (nameToken.getTokenString().startsWith("$")) {
+                                    index.references.add(nameToken.getTokenString());
+                                }
+                                i = nameToken.getNumComponents() + 1;
+                                break;
+                        }
+                    }
                 }
+                index.references.add(cmdToken.getTokenString());
             }
             parse.release();
         }
@@ -147,7 +177,7 @@ public class SymbolIndex {
                 entry -> {
                     SourceFileIndex index = entry.getValue();
 
-                    return index.namespaceName.equals(namespaceName)
+                    return index.namespaces.contains(namespaceName)
                             && index.topLevelClasses
                                     .stream()
                                     .anyMatch(c -> c.equals(className));
@@ -189,7 +219,7 @@ public class SymbolIndex {
         List<TclParse> tclParses = Parser.parseCommand(source.getPath());
 
         for (TclParse parse: tclParses) {
-            for (int i = 0; i < parse.numTokens(); i++) {
+            for (int i = 0; i < parse.getNumTokens(); i++) {
                 TclToken token = parse.getToken(i);
                 switch (token.getType()) {
                 case Parser.TCL_TOKEN_TEXT:

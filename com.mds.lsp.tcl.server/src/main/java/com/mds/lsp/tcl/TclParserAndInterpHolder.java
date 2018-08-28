@@ -43,15 +43,20 @@ public class TclParserAndInterpHolder {
         Optional<TclFileObject> file = getRegularFile(source);
         return file.map(f -> {
             try {
-                return Parser.parseCommand(f.getCharContent(false).toString());
+                String script = f.getCharContent(false).toString();
+                interp.eval(script);
+                return Parser.parseCommand(script);
             } catch (IOException e) {
                 e.printStackTrace();
+            } catch (TclException e) {
+                e.printStackTrace();
             }
+            return Collections.<TclParse>emptyList();
         }).orElse(Collections.emptyList());
     }
 
     public FocusedResult compileFocused(URI uri, Optional<String> content, int line, int character, boolean b) {
-        content.map(s -> Parser.parseCommand(s)).orElse(Collections.emptyList());
+        content.map(s -> Parser.parseCommand(s)).orElse(Collections.emptyList()).stream();
         FocusedResult result = new FocusedResult();
         return result;
     }
