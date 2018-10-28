@@ -7,26 +7,13 @@
     <groupId>com.mds</groupId>
     <artifactId>com.mds.lsp.tcl</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <modules>
         <module>jtcl</module>
         <module>com.mds.lsp.tcl.server</module>
+        <module>com.mds.lsp.tcl.intellij</module>
+        <module>com.mds.lsp.tcl.vscode</module>
+        <module>com.mds.lsp.tcl.eclipse</module>
     </modules>
-
-    <profiles>
-        <profile>
-            <id>vscode</id>
-            <modules>
-              <module>com.mds.lsp.tcl.vscode</module>  
-            </modules>
-        </profile>
-
-        <profile>
-            <id>eclipse</id>
-            <modules>
-              <module>com.mds.lsp.tcl.eclipse</module>  
-            </modules>
-        </profile>
-    </profiles>
 
 </project>

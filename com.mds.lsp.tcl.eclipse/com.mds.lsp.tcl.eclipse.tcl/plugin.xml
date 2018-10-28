@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.core.contenttype.contentTypes">
+      <content-type
+            base-type="org.eclipse.core.runtime.text"
+            file-extensions="tcl"
+            id="com.mds.lsp.tcl.eclipse.tcl"
+            name="Tcl"
+            priority="normal">
+      </content-type>
+   </extension>
+   <extension
+         point="org.eclipse.lsp4e.languageServer">
+      <server
+            class="com.mds.lsp.tcl.TclLanguageServer"
+            id="com.mds.lsp.tcl.server"
+            label="Tcl Language Server">
+      </server>
+      <contentTypeMapping
+            contentType="com.mds.lsp.tcl.eclipse.tcl"
+            id="com.mds.lsp.tcl.server">
+      </contentTypeMapping>
+   </extension>
+   <extension
+         point="org.eclipse.ui.genericeditor.presentationReconcilers">
+      <presentationReconciler
+            class="org.eclipse.tm4e.ui.text.TMPresentationReconciler"
+            contentType="com.mds.lsp.tcl.eclipse.tcl">
+      </presentationReconciler>
+   </extension>
+   <extension
+         point="org.eclipse.ui.editors">
+      <editorContentTypeBinding
+            contentTypeId="com.mds.lsp.tcl.eclipse.tcl"
+            editorId="org.eclipse.ui.genericeditor.GenericEditor">
+      </editorContentTypeBinding>
+   </extension>
+   <extension
+         point="org.eclipse.tm4e.registry.grammars">
+      <grammar
+            path="grammars/tcl.tmLanguage"
+            scopeName="source.tcl">
+      </grammar>
+      <scopeNameContentTypeBinding
+            contentTypeId="com.mds.lsp.tcl.eclipse.tcl"
+            scopeName="source.tcl">
+      </scopeNameContentTypeBinding>
+   </extension>
+
+</plugin>

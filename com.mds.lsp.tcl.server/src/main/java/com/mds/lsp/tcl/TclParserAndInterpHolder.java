@@ -80,4 +80,11 @@ public class TclParserAndInterpHolder {
         return Optional.of(new StringFileObject(sourceContent, uri));
     }
 
+    public void addEvalFlag(int evalFlag) {
+        interp.evalFlags |= evalFlag;
+    }
+
+    public TclParse parseSubCmd(char[] scriptArray, int scriptIndex, int numChars, String fileName, int lineNum) {
+        return Parser.parseCommand(interp, scriptArray, scriptIndex, numChars, fileName, lineNum, true);
+    }
 }

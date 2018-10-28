@@ -3,28 +3,19 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-<<<<<<< HEAD
         <groupId>com.mds</groupId>
         <artifactId>com.mds.lsp.tcl</artifactId>
-        <version>1.0-SNAPSHOT</version>
-=======
-        <artifactId>com.mds.lsp.tcl</artifactId>
-        <groupId>com.mds</groupId>
         <version>1.0.0-SNAPSHOT</version>
->>>>>>> add intellij and eclipse packaging
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>com.mds.lsp.tcl.vscode</artifactId>
+    <artifactId>com.mds.lsp.tcl.intellij</artifactId>
 
 
     <dependencies>
+
         <dependency>
-<<<<<<< HEAD
-            <groupId>${project.parent.groupId}</groupId>
-=======
             <groupId>com.mds</groupId>
->>>>>>> add intellij and eclipse packaging
             <artifactId>com.mds.lsp.tcl.server</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
