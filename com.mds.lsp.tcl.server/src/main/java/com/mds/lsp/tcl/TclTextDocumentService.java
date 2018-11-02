@@ -134,16 +134,16 @@ class TclTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<List<? extends SymbolInformation>> documentSymbol(DocumentSymbolParams params) {
+    public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
         URI uri = URI.create(params.getTextDocument().getUri());
-        List<SymbolInformation> symbols =
+        List<Either<SymbolInformation, DocumentSymbol>> symbols =
                 server.configured().index.allInFile(uri).collect(Collectors.toList());
 
         return CompletableFuture.completedFuture(symbols);
     }
 
     @Override
-    public CompletableFuture<List<? extends Command>> codeAction(CodeActionParams codeActionParams) {
+    public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams codeActionParams) {
         throw new UnsupportedOperationException();
     }
 

@@ -18,7 +18,7 @@
 		<repository>
 			<id>photon</id>
 			<layout>p2</layout>
-			<url>http://download.eclipse.org/releases/oxygen/</url>
+			<url>http://download.eclipse.org/releases/photon/</url>
 		</repository>
 		<repository>
 			<id>lsp4e</id>
@@ -31,16 +31,23 @@
 			<url>http://download.eclipse.org/tm4e/snapshots/</url>
 		</repository>
 		<repository>
-			<id>aCute</id>
-			<layout>p2</layout>
-			<url>http://repository.jboss.org/nexus/content/unzip/unzip/org/eclipse/acute/repository/0.1.0-SNAPSHOT/repository-0.1.0-SNAPSHOT.zip-unzip/</url>
+			<id>central</id>
+			<url>http://central.maven.org/maven2/</url>
 		</repository>
+		<!--
 		<repository>
 			<id>orbit</id>
 			<layout>p2</layout>
 			<url>http://download.eclipse.org/tools/orbit/R-builds/R20170307180635/repository</url>
-		</repository>
+		</repository>-->
 	</repositories>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>central</id>
+			<url>http://central.maven.org/maven2/</url>
+		</pluginRepository>
+	</pluginRepositories>
 
 	<build>
 		<plugins>

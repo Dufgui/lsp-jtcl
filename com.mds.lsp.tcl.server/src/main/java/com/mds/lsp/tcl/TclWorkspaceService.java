@@ -45,6 +45,8 @@ class TclWorkspaceService implements WorkspaceService {
                         .index
                         .search(params.getQuery())
                         .limit(server.maxItems)
+                        .filter(e -> e.isLeft())
+                        .map(e -> e.getLeft())
                         .collect(Collectors.toList());
 
         return CompletableFuture.completedFuture(infos);

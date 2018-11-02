@@ -2,6 +2,7 @@ package com.mds.lsp.tcl;
 
 import com.google.common.collect.Maps;
 import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import tcl.lang.*;
 
 
@@ -219,7 +220,7 @@ public class SymbolIndex {
     }
 
      /** Search all indexed symbols */
-    public Stream<SymbolInformation> search(String query) {
+    public Stream<Either<SymbolInformation, DocumentSymbol>> search(String query) {
         updateOpenFiles();
 
         Predicate<CharSequence> nameMatchesQuery =
@@ -235,14 +236,19 @@ public class SymbolIndex {
         return openFirst
                 .filter(fileMatchesQuery)
                 .flatMap(this::allInFile)
-                .filter(info -> nameMatchesQuery.test(info.getName()));
+                .filter(info -> {
+                    if(info.isLeft())
+                        return nameMatchesQuery.test(info.getLeft().getName());
+                    else
+                        return nameMatchesQuery.test(info.getRight().getName());
+                });
     }
 
     /** Get all declarations in an open file */
-    public Stream<SymbolInformation> allInFile(URI source) {
+    public Stream<Either<SymbolInformation, DocumentSymbol>> allInFile(URI source) {
         LOG.info("Search " + source);
 
-        List<SymbolInformation> result = new ArrayList<>();
+        List<Either<SymbolInformation, DocumentSymbol>> result = new ArrayList<>();
         List<TclParse> tclParses = Parser.parseCommand(source.getPath());
 
         for (TclParse parse: tclParses) {
@@ -250,13 +256,13 @@ public class SymbolIndex {
                 TclToken token = parse.getToken(i);
                 switch (token.getType()) {
                 case Parser.TCL_TOKEN_TEXT:
-                    result.add(new SymbolInformation(token.getTokenString(), SymbolKind.Event, toLocation(source, parse, token)));
+                    result.add(Either.forLeft(new SymbolInformation(token.getTokenString(), SymbolKind.Event, toLocation(source, parse, token))));
                     break;
                 case Parser.TCL_TOKEN_VARIABLE:
-                    result.add(new SymbolInformation(token.getTokenString(), SymbolKind.Variable, toLocation(source, parse, token)));
+                    result.add(Either.forLeft(new SymbolInformation(token.getTokenString(), SymbolKind.Variable, toLocation(source, parse, token))));
                     break;
                 case Parser.TCL_TOKEN_COMMAND:
-                    result.add(new SymbolInformation(token.getTokenString(), SymbolKind.Function, toLocation(source, parse, token)));
+                    result.add(Either.forLeft(new SymbolInformation(token.getTokenString(), SymbolKind.Function, toLocation(source, parse, token))));
                     break;
                 default:
                     //do nothing

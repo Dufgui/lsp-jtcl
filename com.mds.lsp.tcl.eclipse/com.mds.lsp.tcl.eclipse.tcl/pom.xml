@@ -1,40 +1,69 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
         <groupId>com.mds</groupId>
         <artifactId>com.mds.lsp.tcl.eclipse</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>com.mds.lsp.tcl.eclipse.tcl</artifactId>
-	<packaging>eclipse-plugin</packaging>
+    <packaging>eclipse-plugin</packaging>
 
-	<dependencies>
-		<dependency>
-			<groupId>com.mds</groupId>
-			<artifactId>com.mds.lsp.tcl.server</artifactId>
-			<version>${project.parent.version}</version>
-		</dependency>
-	</dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>com.mds</groupId>
+            <artifactId>com.mds.lsp.tcl.server</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+    </dependencies>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.eclipse.tycho</groupId>
-				<artifactId>tycho-packaging-plugin</artifactId>
-				<version>${tycho-version}</version>
-				<configuration>
-					<additionalFileSets>
-						<fileSet>
-							<directory>${project.basedir}</directory>
-							<includes>
-								<include>server/**</include>
-							</includes>
-						</fileSet>
-					</additionalFileSets>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-packaging-plugin</artifactId>
+                <version>${tycho-version}</version>
+                <configuration>
+                    <additionalFileSets>
+                        <fileSet>
+                            <directory>${project.basedir}</directory>
+                            <includes>
+                                <include>server/**</include>
+                            </includes>
+                        </fileSet>
+                    </additionalFileSets>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <directory>syntaxes</directory>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/syntaxes</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/../../com.mds.lsp.tcl.server/syntaxes</directory>
+                                    <includes>
+                                        <include>tcl.tmLanguage</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
