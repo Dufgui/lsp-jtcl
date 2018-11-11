@@ -11,9 +11,35 @@
     <modules>
         <module>jtcl</module>
         <module>com.mds.lsp.tcl.server</module>
-        <module>com.mds.lsp.tcl.intellij</module>
-        <module>com.mds.lsp.tcl.vscode</module>
-        <module>com.mds.lsp.tcl.eclipse</module>
     </modules>
+
+    <profiles>
+        <profile>
+            <id>all</id>
+            <modules>
+                <module>com.mds.lsp.tcl.intellij</module>
+                <module>com.mds.lsp.tcl.vscode</module>
+                <module>com.mds.lsp.tcl.eclipse</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>eclipse</id>
+            <modules>
+                <module>com.mds.lsp.tcl.eclipse</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>vscode</id>
+            <modules>
+                <module>com.mds.lsp.tcl.vscode</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>intellij</id>
+            <modules>
+                <module>com.mds.lsp.tcl.intellij</module>
+            </modules>
+        </profile>
+    </profiles>
 
 </project>
