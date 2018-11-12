@@ -38,10 +38,8 @@ class SymbolIndexTest {
 	}
 
 	@Test
-	void search() {
+	void shouldIndexSet() {
+		//TODO should refactor to assert
 	}
 
-	@Test
-	void allInFile() {
-	}
 }

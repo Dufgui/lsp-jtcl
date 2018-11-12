@@ -1,5 +1,6 @@
 package com.mds.lsp.tcl;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -98,62 +99,92 @@ public class SymbolIndex {
         if(parse.getNumTokens() > 0) {
             TclToken cmdToken = parse.getToken(0);
             if(cmdToken.getTokenString().equals("set")) {
-                if(parse.getNumTokens() >= 1) {
-                    TclToken nameToken = parse.getToken(1);
-                    String tokenString = nameToken.getTokenString();
-                    if(tokenString.indexOf('(') != -1) {
-                        tokenString = tokenString.substring(0, tokenString.indexOf('('));
-                        index.declarations.add(tokenString);
-                    } else {
-                        index.declarations.add(tokenString);
-                    }
+                if(parse.getNumTokens() > 1) {
+                    TclToken nameToken = parse.getToken(2);
+                    indexToken(index, parse, nameToken, (t) -> index.declarations.add(t));
+                }
+                if(parse.getNumTokens() > 3) {
+                    TclToken nameToken = parse.getToken(4);
+                    //index variable but not other
+                    indexToken(index, parse, nameToken, (t) -> {});
                 }
             } else if(cmdToken.getTokenString().equals("proc")) {
-                if(parse.getNumTokens() >= 1) {
-                    TclToken nameToken = parse.getToken(1);
-                    index.declarations.add(nameToken.getTokenString());
+                if(parse.getNumTokens() > 1) {
+                    TclToken nameToken = parse.getToken(2);
+                    indexToken(index, parse, nameToken, (t) -> index.declarations.add(t));
                 }
             } else if(cmdToken.getTokenString().equals("variable")) {
-                for (int i = 1; i < parse.getNumTokens(); i=i+2) {
+                for (int i = 2; i < parse.getNumTokens(); i=i+2) {
                     TclToken nameToken = parse.getToken(i);
-                    index.references.add(nameToken.getTokenString());
+                    indexToken(index, parse, nameToken, (t) -> index.references.add(t));
                 }
             } else if(cmdToken.getTokenString().equals("namespace")) {
-                if(parse.getNumTokens() >= 2) {
-                    TclToken subCmdToken = parse.getToken(1);
+                if(parse.getNumTokens() > 2) {
+                    TclToken subCmdToken = parse.getToken(2);
                     if(subCmdToken.getTokenString().equals("eval")) {
-                        TclToken nameToken = parse.getToken(2);
+                        TclToken nameToken = parse.getToken(3);
                         index.namespaces.add(nameToken.getTokenString());
                     }
                 }
             } else {
-                for (int i = 1; i < parse.getNumTokens(); i++) {
-                    TclToken nameToken = parse.getToken(i);
-                    i = indexToken(index, parse, nameToken);
-                }
+                indexTokenRecursivly(index, parse, 2);
             }
-            index.references.add(cmdToken.getTokenString());
         }
         parse.release();
     }
 
-    private int indexToken(SourceFileIndex index, TclParse parse, TclToken token) {
-        return indexToken(index, parse, token, (t) -> {});
-    }
-
-    private int indexToken(SourceFileIndex index, TclParse parse, TclToken token, Consumer<TclToken> consumer) {
+    private void indexTokenRecursivly(SourceFileIndex index, TclParse parse, int currentIdx) {
+        int i = currentIdx;
+        TclToken token = parse.getToken(i);
         switch (token.getType()) {
             case Parser.TCL_TOKEN_TEXT:
+            case Parser.TCL_TOKEN_SIMPLE_WORD:
+            case Parser.TCL_TOKEN_WORD:
+                i = i + +1;
+                indexTokenRecursivly(index, parse, i);
+                return;
+            case Parser.TCL_TOKEN_COMMAND:
+            case Parser.TCL_TOKEN_VARIABLE:
+                i = i + +1;
+                TclToken nextToken = parse.getToken(i);
+                indexToken(index, parse, nextToken, (t) -> index.references.add(t));
+                if(parse.getNumTokens() > i) {
+                    i = i + +1;
+                    indexTokenRecursivly(index, parse, i);
+                }
+                return;
+            case Parser.TCL_TOKEN_OPERATOR:
+            case Parser.TCL_TOKEN_SUB_EXPR:
+            case Parser.TCL_TOKEN_BS:
+        }
+    }
+
+    private int indexToken(SourceFileIndex index, TclParse parse, TclToken token, Consumer<String> consumer) {
+        switch (token.getType()) {
+            case Parser.TCL_TOKEN_TEXT:
+            case Parser.TCL_TOKEN_SIMPLE_WORD:
                 String tokenString = token.getTokenString();
                 if (tokenString.startsWith("$")) {
-                    if(tokenString.indexOf('(') != -1) {
+                    tokenString = tokenString.substring(1);
+                    if (tokenString.indexOf('(') != -1) {
                         tokenString = tokenString.substring(0, tokenString.indexOf('('));
-                        index.references.add(tokenString);
+                        if(!Strings.isNullOrEmpty(tokenString)) {
+                            index.references.add(tokenString);
+                        }
                     } else {
-                        index.references.add(tokenString);
+                        if(!Strings.isNullOrEmpty(tokenString)) {
+                            index.references.add(tokenString);
+                        }
                     }
-                } else {
-                    consumer.accept(token);
+                }else if (tokenString.indexOf('(') != -1) {
+                    tokenString = tokenString.substring(0, tokenString.indexOf('('));
+                    if(!Strings.isNullOrEmpty(tokenString)) {
+                        consumer.accept(tokenString);
+                    }
+                }else if (tokenString.startsWith("{") || tokenString.isEmpty()) {
+                    //don't index string
+                }  else {
+                    consumer.accept(token.getTokenString());
                 }
                 break;
             case Parser.TCL_TOKEN_COMMAND:
